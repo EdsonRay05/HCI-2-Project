@@ -3,7 +3,7 @@ import numpy as np
 from config import CLIENT_ID, CLIENT_SECRET
 from spotify_api import get_spotify_token, get_episode_preview_url
 from audio_processing import download_audio, transcribe_audio, summarize_text, analyze_sentiment
-from chatbot import extract_themes, chatbot_response
+from chatbot import categorize_podcast_content, chatbot_response
 from styles import CUSTOM_CSS  # Custom CSS file
 
 # --- Custom CSS ---
@@ -76,7 +76,7 @@ if convert_button and spotify_url:
                     with st.spinner("💭 Analyzing sentiment..."):
                         st.session_state.sentiment_data = analyze_sentiment(transcribed_text)
                     with st.spinner("🌱 Extracting themes..."):
-                        st.session_state.generated_themes = extract_themes(transcribed_text)
+                        st.session_state.generated_themes = categorize_podcast_content(transcribed_text)
                     st.session_state.conversion_complete = True
                     st.rerun()
         else:
@@ -116,7 +116,7 @@ if st.session_state.conversion_complete:
                 st.markdown(f'<div class="sentiment-negative">{st.session_state.sentiment_data["negative"]}% Negative</div>', unsafe_allow_html=True)
         else:
             st.info("Sentiment data is not available.")
-        st.markdown("### COMMON THEMES")
+        st.markdown("### CATEGORIZED THEMES")
         if st.session_state.generated_themes:
             cols = st.columns(5)
             for i, theme in enumerate(st.session_state.generated_themes):
