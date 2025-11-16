@@ -4,7 +4,8 @@ import numpy as np
 import os
 import imageio_ffmpeg
 
-os.environ['PATH'] = os.path.dirname(imageio_ffmpeg.get_ffmpeg_exe()) + os.pathsep + os.environ.get('PATH', '')
+ffmpeg_dir = os.path.dirname(imageio_ffmpeg.get_ffmpeg_exe())
+os.environ['PATH'] = ffmpeg_dir + os.pathsep + os.environ.get('PATH', '')
 
 from config import CLIENT_ID, CLIENT_SECRET
 from spotify_api import get_spotify_token, get_episode_preview_url
@@ -157,6 +158,7 @@ if st.session_state.conversion_complete:
                     response = chatbot_response(user_question, st.session_state.transcribed_text)
                 st.session_state.chat_history.append({"role": "assistant", "content": response})
                 st.rerun()
+
 
 
 
