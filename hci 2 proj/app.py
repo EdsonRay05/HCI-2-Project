@@ -5,6 +5,8 @@ from spotify_api import get_spotify_token, get_episode_preview_url
 from audio_processing import download_audio, transcribe_audio, summarize_text, analyze_sentiment
 from chatbot import categorize_podcast_content, chatbot_response
 from styles import CUSTOM_CSS  # Custom CSS file
+import os
+import imageio_ffmpeg
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
@@ -13,6 +15,9 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+
+os.environ['PATH'] = os.path.dirname(imageio_ffmpeg.get_ffmpeg_exe()) + os.pathsep + os.environ.get('PATH', '')
 
 
 # --- Custom CSS ---
@@ -150,3 +155,4 @@ if st.session_state.conversion_complete:
                     response = chatbot_response(user_question, st.session_state.transcribed_text)
                 st.session_state.chat_history.append({"role": "assistant", "content": response})
                 st.rerun()
+
