@@ -6,9 +6,6 @@ from audio_processing import download_audio, transcribe_audio, summarize_text, a
 from chatbot import categorize_podcast_content, chatbot_response
 from styles import CUSTOM_CSS  # Custom CSS file
 
-# --- Custom CSS ---
-st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
-
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="SoundScape",
@@ -16,6 +13,12 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+
+# --- Custom CSS ---
+st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+
+
 
 # --- SESSION STATE ---
 if 'transcribed_text' not in st.session_state:
