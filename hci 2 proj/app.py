@@ -3,6 +3,7 @@ import numpy as np
 
 import imageio_ffmpeg
 import shutil
+import os
 ffmpeg_dir = os.path.dirname(imageio_ffmpeg.get_ffmpeg_exe())
 os.environ['PATH'] = ffmpeg_dir + os.pathsep + os.environ.get('PATH', '')
 
@@ -165,6 +166,7 @@ if st.session_state.conversion_complete:
                     response = chatbot_response(user_question, st.session_state.transcribed_text)
                 st.session_state.chat_history.append({"role": "assistant", "content": response})
                 st.rerun()
+
 
 
 
