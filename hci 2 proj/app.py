@@ -1,19 +1,17 @@
 import streamlit as st
 import numpy as np
 
-import imageio_ffmpeg
-import shutil
+import os
+import streamlit as st
 
-ffmpeg_dir = os.path.dirname(imageio_ffmpeg.get_ffmpeg_exe())
-os.environ['PATH'] = ffmpeg_dir + os.pathsep + os.environ.get('PATH', '')
-
-# Debug: show where (if anywhere) 'ffmpeg' is found on PATH
-ffmpeg_path = shutil.which("ffmpeg")
-if ffmpeg_path:
-    st.success(f"ffmpeg binary found at: {ffmpeg_path}")
-else:
-    st.error("ffmpeg binary NOT found in PATH. PATH is: " + os.environ['PATH'])
-    st.info(f"imageio_ffmpeg.get_ffmpeg_exe() points to: {imageio_ffmpeg.get_ffmpeg_exe()}")
+try:
+    import imageio_ffmpeg
+    ffmpeg_dir = os.path.dirname(imageio_ffmpeg.get_ffmpeg_exe())
+    os.environ['PATH'] = ffmpeg_dir + os.pathsep + os.environ.get('PATH', '')
+except ModuleNotFoundError:
+    st.error("imageio-ffmpeg package is not installed.")
+except Exception as e:
+    st.error(f"imageio-ffmpeg failed: {e}")
     
 from config import CLIENT_ID, CLIENT_SECRET
 from spotify_api import get_spotify_token, get_episode_preview_url
@@ -166,6 +164,7 @@ if st.session_state.conversion_complete:
                     response = chatbot_response(user_question, st.session_state.transcribed_text)
                 st.session_state.chat_history.append({"role": "assistant", "content": response})
                 st.rerun()
+
 
 
 
