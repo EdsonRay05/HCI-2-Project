@@ -1,63 +1,67 @@
-# chatbot.py
+import streamlit as st
+from groq import Groq  # Import Groq
 from models import load_embedding_model
 from sentence_transformers import util
 import requests
 import json
 
-def ollama_generate(prompt, model_name="deepseek-r1:1.5b-qwen-distill-q8_0"):
+# This is our new function that calls the Groq API
+def groq_generate(prompt, model_name="llama-3.3-70b-versatile"):
+    """Calls the Groq API to generate a response."""
     try:
-        response = requests.post(
-            "http://localhost:11434/api/generate",
-            json={
-                "model": model_name,
-                "prompt": prompt,
-                "options": {"temperature": 0.8, "top_p": 0.95, "max_tokens": 200}
-            },
-            stream=True,
-            timeout=30
+        # Get the API key from Streamlit secrets
+        client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            model=model_name,
+            temperature=0.7,
+            max_tokens=250,
+            top_p=1,
+            stream=False,
         )
-        output = ""
-        for line in response.iter_lines():
-            if line:
-                try:
-                    data = json.loads(line.decode("utf-8"))
-                    if "response" in data:
-                        output += data["response"]
-                except:
-                    continue
-        return output.strip()
+        
+        return chat_completion.choices[0].message.content.strip()
+
     except Exception as e:
-        return f"Error: {str(e)}. Make sure Ollama is running locally."
+        # This print statement is for debugging in your terminal
+        print(f"FULL GROQ ERROR: {e}") 
+        
+        # Display a user-friendly error in the Streamlit app
+        st.error(f"Error communicating with Groq API: {e}")
+        return "Sorry, I couldn't get a response from the AI model."
+
+# chatbot.py
 
 def categorize_podcast_content(text):
+    # This prompt now asks the AI to return percentages
     prompt = (
-        "You are an assistant. Analyze the following podcast transcript and categorize its content into up to 5 main themes or topics. "
-        "For each category, estimate its proportional presence as a percentage of the overall content. "
-        "Return ONLY a comma-separated list in the format: Category1: X%, Category2: Y%, etc. The total must be 100%. "
-        "Example: Love: 10%, Science: 90%\n\n"
+        "You are an assistant. Analyze the following podcast transcript and categorize its content "
+        "into up to 5 main themes or topics. "
+        "For each category, estimate its proportional presence as a percentage. "
+        "Return ONLY a comma-separated list in the format: Category1: X%, Category2: Y% "
+        "Example: Habits: 40%, Psychology: 30%, Self-Improvement: 30%\n\n"
         f"Transcript: \"{text}\"\n\n"
         "Categories:"
     )
     try:
-        theme_string = ollama_generate(prompt)
+        # Call the groq_generate function
+        theme_string = groq_generate(prompt)
         categories_list = [cat.strip() for cat in theme_string.split(",") if cat.strip()]
         if not categories_list:
             return ["No categories found"]
         return categories_list
     except Exception as e:
-        return [f"Categorization unavailable: {str(e)}"]
+        return [f"CategorVization unavailable: {str(e)}"]
 
-
-# Preprocessing function for chatbot responses
-# Explore the transcript and generate a response based on user query
-# Extract things
-# Have prompt to chatbot response, because it doesnt have a prompt, therefore when the user ask a second time, 
-# the chatbot didnt remember the first question
-def chatbot_response(query, transcript, conversation_history=None):
+def chatbot_response(query, transcript, summary, conversation_history=None):
     if not transcript:
         return "Please convert a podcast first before asking questions."
     if conversation_history is None:
         conversation_history = []
+        
     try:
         embedding_model = load_embedding_model()
         transcript_chunks = transcript.split(". ")
@@ -66,25 +70,28 @@ def chatbot_response(query, transcript, conversation_history=None):
         hits = util.semantic_search(query_embedding, chunk_embeddings, top_k=3)
         relevant_chunks = " ".join([transcript_chunks[hit['corpus_id']] for hit in hits[0]])
 
-        # Build conversation history string from previous Q&A pairs
+        # Build conversation history string
         history_text = ""
-        for q, a in conversation_history[-5:]:  # limit to last 5 exchanges to keep prompt size manageable
-            history_text += f"Q: {q}\nA: {a}\n\n"
+        for msg in conversation_history[-5:]: # Get last 5 messages
+            if msg['role'] == 'user':
+                history_text += f"Q: {msg['content']}\n"
+            else:
+                history_text += f"A: {msg['content']}\n"
 
-        # Construct the prompt including conversation history and transcript context
+        # **FIXED**: The prompt now includes the summary
         prompt = (
-            f"You are an assistant. Use the following conversation history and context to answer the question as accurately as possible. "
-            f"If the answer is not available, say 'I don't know.'\n\n"
-            f"Conversation history:\n{history_text}"
-            f"Context: {relevant_chunks}\n\n"
+            f"You are an assistant. Use the following conversation history, episode summary, and specific context to answer the question. "
+            f"If the answer is not in the provided information, say 'I don't know.'\n\n"
+            f"Conversation history:\n{history_text}\n"
+            f"Episode Summary: {summary}\n"  # <-- THIS IS THE FIX
+            f"Specific Context (from transcript): {relevant_chunks}\n\n"
             f"Question: {query}\n"
             f"Answer:"
         )
 
-        answer = ollama_generate(prompt)
-
-        # Optionally, append current QA pair to conversation_history externally in your calling code
-
+        # Call the new groq_generate function
+        answer = groq_generate(prompt)
         return answer
+        
     except Exception as e:
         return f"Error generating response: {str(e)}"
